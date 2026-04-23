@@ -19,14 +19,23 @@ card_number = st.number_input(
 page, pos, label = calcCardPos(int(card_number))
 is_right_page = page % 2 == 1
 
+# Current page is the one containing the highlighted card.
+# Opposite page is the blank facing page in the spread.
+current_page_number = page
+opposite_page_number = page - 1 if is_right_page else page + 1
+
+left_page_number = opposite_page_number if is_right_page else current_page_number
+right_page_number = current_page_number if is_right_page else opposite_page_number
+
 st.subheader(f"Page {page} - {label}")
 
 cells = []
 for i in range(1, 10):
-    if i == pos:
-        cells.append(f'<div class="cell active">{i}</div>')
+    card_at_position = ((page - 1) * 9) + i
+    if card_at_position == int(card_number):
+        cells.append(f'<div class="cell active">{card_at_position}</div>')
     else:
-        cells.append(f'<div class="cell">{i}</div>')
+        cells.append(f'<div class="cell">{card_at_position}</div>')
 
 st.markdown(
     """
@@ -171,21 +180,21 @@ def render_blank_page(page_name):
 <div class="page blank">
   <div class="page-title">{page_name}</div>
   <div class="page-content">
-    <div class="blank-fill">Blank Opposite Page</div>
+    <div class="blank-fill">&nbsp;</div>
   </div>
 </div>
 """
 
 
 left_page_html = (
-  render_blank_page("Left Page")
+  render_blank_page(f"Left Page ({left_page_number})")
   if is_right_page
-  else render_filled_page("Left Page", "".join(cells))
+  else render_filled_page(f"Left Page ({left_page_number})", "".join(cells))
 )
 right_page_html = (
-  render_filled_page("Right Page", "".join(cells))
+  render_filled_page(f"Right Page ({right_page_number})", "".join(cells))
   if is_right_page
-  else render_blank_page("Right Page")
+  else render_blank_page(f"Right Page ({right_page_number})")
 )
 
 st.markdown(
