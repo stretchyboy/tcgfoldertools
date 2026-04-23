@@ -3,7 +3,7 @@ import streamlit as st
 from cardpos import calcCardPos
 
 
-st.set_page_config(page_title="TCG Card Position", page_icon="🃏", layout="centered")
+st.set_page_config(page_title="TCG Card Position", page_icon="🃏", layout="wide")
 
 st.title("TCG Card Position Finder")
 st.write("Enter a card number to find its page and 3x3 position.")
@@ -17,6 +17,7 @@ card_number = st.number_input(
 )
 
 page, pos, label = calcCardPos(int(card_number))
+is_right_page = page % 2 == 1
 
 st.subheader(f"Page {page} - {label}")
 
@@ -27,15 +28,61 @@ for i in range(1, 10):
     else:
         cells.append(f'<div class="cell">{i}</div>')
 
-grid_html = f"""
+st.markdown(
+    """
 <style>
-.grid {{
+.spread {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px 0;
+}
+.page {
+  width: 248px;
+  min-width: 248px;
+  margin: 0;
+  min-height: 324px;
+  border: 2px solid #334155;
+  border-radius: 14px;
+  padding: 10px;
+  background: #ffffff;
+}
+.page.filled {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 2px #99f6e4 inset;
+}
+.page.blank {
+  border-style: dashed;
+  background: repeating-linear-gradient(
+    45deg,
+    #f8fafc,
+    #f8fafc 10px,
+    #f1f5f9 10px,
+    #f1f5f9 20px
+  );
+}
+.page-title {
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+.page-content {
+  width: 208px;
+  min-height: 286px;
+  margin: 0 auto;
+}
+.grid {
   display: grid;
   grid-template-columns: repeat(3, 64px);
   gap: 8px;
-  max-width: 208px;
-}}
-.cell {{
+  width: 208px;
+}
+.cell {
   border: 2px solid #1f2937;
   border-radius: 10px;
   aspect-ratio: 5 / 7;
@@ -45,18 +92,111 @@ grid_html = f"""
   text-align: center;
   font-weight: 600;
   background: #f8fafc;
-}}
-.cell.active {{
+}
+.cell.active {
   background: #fde68a;
   border-color: #92400e;
   box-shadow: 0 0 0 2px #f59e0b inset;
-}}
+}
+.blank-fill {
+  width: 208px;
+  min-height: 286px;
+  border-radius: 10px;
+  border: 1px dashed #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .spread {
+    gap: 6px;
+  }
+  .page {
+    width: 166px;
+    min-width: 166px;
+    min-height: 244px;
+    border-radius: 10px;
+    padding: 6px;
+  }
+  .page-title {
+    font-size: 0.72rem;
+    margin-bottom: 4px;
+  }
+  .page-content {
+    width: 150px;
+    min-height: 208px;
+  }
+  .grid {
+    grid-template-columns: repeat(3, 46px);
+    gap: 6px;
+    width: 150px;
+  }
+  .cell {
+    border-width: 1px;
+    border-radius: 7px;
+    font-size: 0.8rem;
+  }
+  .blank-fill {
+    width: 150px;
+    min-height: 208px;
+    font-size: 0.72rem;
+  }
+}
 </style>
-<div class="grid">
-  {''.join(cells)}
+""",
+    unsafe_allow_html=True,
+)
+
+
+def render_filled_page(page_name, page_cells):
+    return f"""
+<div class="page filled">
+  <div class="page-title">{page_name}</div>
+  <div class="page-content">
+    <div class="grid">
+      {page_cells}
+    </div>
+  </div>
 </div>
 """
 
-st.markdown(grid_html, unsafe_allow_html=True)
 
-st.caption(f"Highlighted position {pos}: {label} (page {page})")
+def render_blank_page(page_name):
+    return f"""
+<div class="page blank">
+  <div class="page-title">{page_name}</div>
+  <div class="page-content">
+    <div class="blank-fill">Blank Opposite Page</div>
+  </div>
+</div>
+"""
+
+
+left_page_html = (
+  render_blank_page("Left Page")
+  if is_right_page
+  else render_filled_page("Left Page", "".join(cells))
+)
+right_page_html = (
+  render_filled_page("Right Page", "".join(cells))
+  if is_right_page
+  else render_blank_page("Right Page")
+)
+
+st.markdown(
+  f"""
+<div class="spread">
+  {left_page_html}
+  {right_page_html}
+</div>
+""",
+  unsafe_allow_html=True,
+)
+
+side = "right" if is_right_page else "left"
+st.caption(f"Highlighted position {pos}: {label} (page {page}, {side} side of spread)")
